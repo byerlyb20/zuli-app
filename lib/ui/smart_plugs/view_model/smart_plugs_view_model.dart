@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../domain/models/smart_plug.dart';
+import '../../../domain/repositories/smart_plug_repository.dart';
 
 class SmartPlugsViewModel extends ChangeNotifier {
   List<SmartPlug> _smartPlugs = [];
@@ -10,8 +11,9 @@ class SmartPlugsViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // TODO: Inject smart plug repository when available
-  SmartPlugsViewModel();
+  final SmartPlugRepository _repository;
+
+  SmartPlugsViewModel(this._repository);
 
   Future<void> loadSmartPlugs() async {
     _isLoading = true;
@@ -19,36 +21,7 @@ class SmartPlugsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // TODO: Replace with actual repository call
-      await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
-      _smartPlugs = [
-        SmartPlug(
-          id: '1',
-          friendlyName: 'Living Room Lamp',
-          serialNumber: 'SN001',
-          modelNumber: 'M001',
-          manufacturer: 'Zuli',
-          isOnline: true,
-          isPoweredOn: true,
-          currentPowerUsage: 60.0,
-          lastSeen: DateTime.now(),
-          firmwareVersion: '1.0.0',
-          macAddress: '00:11:22:33:44:55',
-        ),
-        SmartPlug(
-          id: '2',
-          friendlyName: 'Kitchen Coffee Maker',
-          serialNumber: 'SN002',
-          modelNumber: 'M001',
-          manufacturer: 'Zuli',
-          isOnline: true,
-          isPoweredOn: false,
-          currentPowerUsage: 0.0,
-          lastSeen: DateTime.now(),
-          firmwareVersion: '1.0.0',
-          macAddress: '00:11:22:33:44:66',
-        ),
-      ];
+      _smartPlugs = await _repository.getSmartPlugs();
     } catch (e) {
       _error = 'Failed to load smart plugs: $e';
     } finally {
@@ -62,9 +35,9 @@ class SmartPlugsViewModel extends ChangeNotifier {
       final index = _smartPlugs.indexWhere((plug) => plug.id == plugId);
       if (index == -1) return;
 
-      // TODO: Replace with actual repository call
-      await Future.delayed(const Duration(milliseconds: 500)); // Simulate network delay
+      await _repository.togglePower(plugId, newState);
       
+      // Update the local state after successful API call
       _smartPlugs[index] = _smartPlugs[index].copyWith(isPoweredOn: newState);
       notifyListeners();
     } catch (e) {

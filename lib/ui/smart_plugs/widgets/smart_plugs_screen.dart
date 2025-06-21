@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../domain/repositories/smart_plug_repository.dart';
 import '../view_model/smart_plugs_view_model.dart';
 import '../../core/ui/smart_plug_list_item.dart';
 import '../../smart_plug/widgets/smart_plug_detail_screen.dart';
@@ -10,7 +11,10 @@ class SmartPlugsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => SmartPlugsViewModel()..loadSmartPlugs(),
+      create: (context) {
+        final repository = context.read<SmartPlugRepository>();
+        return SmartPlugsViewModel(repository)..loadSmartPlugs();
+      },
       child: const SmartPlugsView(),
     );
   }

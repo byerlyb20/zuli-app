@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:zuli_flutter_app/data/services/transport/flutter_blue_plus_transport.dart';
 import 'domain/repositories/smart_plug_repository_impl.dart';
 import 'domain/repositories/smart_plug_repository.dart';
-import 'data/services/transport/mock_ble_transport.dart';
 import 'data/services/transport/ble_transport_interface.dart';
 import 'ui/smart_plugs/widgets/smart_plugs_screen.dart';
 
@@ -19,7 +19,7 @@ class MainApp extends StatelessWidget {
       providers: [
         // Provide the BLE transport interface
         Provider<BleTransportInterface>(
-          create: (_) => MockBleTransport(),
+          create: (_) => FlutterBluePlusTransport(),
         ),
         // Provide the repository with transport dependency
         Provider<SmartPlugRepository>(

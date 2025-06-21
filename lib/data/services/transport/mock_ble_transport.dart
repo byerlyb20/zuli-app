@@ -185,10 +185,10 @@ class MockBleTransport implements BleTransportInterface {
         // Mock power reading: 60W, 120V, 0.5A, power factor 0.95
         return Uint8List.fromList([
           32, 0, // Command and status
-          500, 0, // 500mA current
-          60, 0, 0, // 60W power (little endian)
+          244, 1, // 500mA current
+          96, 234, 0, // 60W power (little endian)
           95, 0, // Power factor 95%
-          120, 0, 0, // 120V voltage (little endian)
+          192, 212, 1, // 120V voltage (little endian)
         ]);
         
       case 9: // CMD_CLOCK_GET

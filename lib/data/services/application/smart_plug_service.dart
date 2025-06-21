@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import '../../../domain/models/smart_plug.dart';
 import '../transport/ble_transport_interface.dart';
 import 'zuli_protocol.dart';
 

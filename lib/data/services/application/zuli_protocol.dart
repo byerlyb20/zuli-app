@@ -125,10 +125,17 @@ class ZuliProtocol {
   /// Returns the current power consumption data from a read power packet response
   /// Returns (irms_ma, power_mw, power_factor, voltage_mv)
   static PowerReading parseReadPower(Uint8List response) {
-    final irmsMa = response.buffer.asByteData(response.offsetInBytes + 2, 2).getUint16(0);
-    final powerMw = response.buffer.asByteData(response.offsetInBytes + 4, 3).getUint32(0, Endian.little);
-    final powerFactor = response.buffer.asByteData(response.offsetInBytes + 7, 2).getUint16(0);
-    final voltageMv = response.buffer.asByteData(response.offsetInBytes + 9, 3).getUint32(0, Endian.little);
+    // Parse current (2 bytes starting at offset 2)
+    final irmsMa = (response[2] | (response[3] << 8));
+    
+    // Parse power (3 bytes starting at offset 4) - little endian
+    final powerMw = response[4] | (response[5] << 8) | (response[6] << 16);
+    
+    // Parse power factor (2 bytes starting at offset 7)
+    final powerFactor = (response[7] | (response[8] << 8));
+    
+    // Parse voltage (3 bytes starting at offset 9) - little endian
+    final voltageMv = response[9] | (response[10] << 8) | (response[11] << 16);
     
     return PowerReading(
       irmsMa: irmsMa,
@@ -147,8 +154,8 @@ class ZuliProtocol {
   static EnergyInfo parseReadEnergyInfo(Uint8List response) {
     final a = response[2];
     final b = response[4];
-    final c = response.buffer.asByteData(response.offsetInBytes + 5, 2).getUint16(0);
-    final d = response.buffer.asByteData(response.offsetInBytes + 7, 2).getUint16(0);
+    final c = (response[5] | (response[6] << 8));
+    final d = (response[7] | (response[8] << 8));
     
     return EnergyInfo(a: a, b: b, c: c, d: d);
   }

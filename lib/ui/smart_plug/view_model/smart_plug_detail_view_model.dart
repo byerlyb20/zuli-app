@@ -4,6 +4,10 @@ import '../../../domain/models/smart_plug.dart';
 class SmartPlugDetailViewModel extends ChangeNotifier {
   SmartPlug? _smartPlug;
   
+  SmartPlugDetailViewModel({SmartPlug? smartPlug}) {
+    _smartPlug = smartPlug;
+  }
+  
   // Getters
   bool get isOn => _smartPlug?.isPoweredOn ?? false;
   String get deviceName => _smartPlug?.friendlyName ?? 'Unknown Device';

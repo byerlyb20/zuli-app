@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'ui/smart_plugs/widgets/smart_plugs_screen.dart';
-import 'ui/smart_plug/widgets/smart_plug_detail_screen.dart';
 
 void main() {
   runApp(const MainApp());
@@ -27,11 +26,7 @@ class MainApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SmartPlugsScreen(),
-        '/smart-plug-detail': (context) => const SmartPlugDetailScreen(),
-      },
+      home: const SmartPlugsScreen(),
     );
   }
 }

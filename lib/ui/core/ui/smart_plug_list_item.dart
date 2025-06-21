@@ -18,7 +18,7 @@ class SmartPlugListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(smartPlug.friendlyName),
-      trailing: Switch.adaptive(
+      trailing: Switch(
         value: smartPlug.isPoweredOn,
         onChanged: onPowerToggle,
       ),

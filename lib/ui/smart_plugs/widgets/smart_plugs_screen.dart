@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_model/smart_plugs_view_model.dart';
 import '../../core/ui/smart_plug_list_item.dart';
+import '../../smart_plug/widgets/smart_plug_detail_screen.dart';
 
 class SmartPlugsScreen extends StatelessWidget {
   const SmartPlugsScreen({super.key});
@@ -80,7 +81,14 @@ class SmartPlugsView extends StatelessWidget {
                     viewModel.togglePower(smartPlug.id, newState);
                   },
                   onTap: () {
-                    Navigator.pushNamed(context, '/smart-plug-detail');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SmartPlugDetailScreen(
+                          smartPlug: smartPlug,
+                        ),
+                      ),
+                    );
                   },
                 );
               },

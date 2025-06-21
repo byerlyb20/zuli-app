@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_model/smart_plug_detail_view_model.dart';
 import '../../core/ui/smart_dimmer_switch.dart';
+import '../../../domain/models/smart_plug.dart';
 
 class SmartPlugDetailScreen extends StatelessWidget {
-  const SmartPlugDetailScreen({super.key});
+  final SmartPlug smartPlug;
+  
+  const SmartPlugDetailScreen({
+    super.key,
+    required this.smartPlug,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => SmartPlugDetailViewModel(),
+      create: (_) => SmartPlugDetailViewModel(smartPlug: smartPlug),
       child: const SmartPlugDetailView(),
     );
   }
@@ -25,18 +31,7 @@ class SmartPlugDetailView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(viewModel.deviceName),
-            Text(
-              "Description",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-          ],
-        ),
+        title: Text(viewModel.deviceName),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),

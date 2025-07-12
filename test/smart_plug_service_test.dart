@@ -41,19 +41,16 @@ void main() {
 
     test('should turn on smart plug', () async {
       await service.initialize();
-      await service.connectToSmartPlug('mock-device-1');
       await expectLater(service.turnOnSmartPlug('mock-device-1'), completes);
     });
 
     test('should turn off smart plug', () async {
       await service.initialize();
-      await service.connectToSmartPlug('mock-device-1');
       await expectLater(service.turnOffSmartPlug('mock-device-1'), completes);
     });
 
     test('should read power consumption', () async {
       await service.initialize();
-      await service.connectToSmartPlug('mock-device-1');
       
       final powerReading = await service.readSmartPlugPower('mock-device-1');
       
@@ -64,7 +61,6 @@ void main() {
 
     test('should get smart plug status', () async {
       await service.initialize();
-      await service.connectToSmartPlug('mock-device-1');
       
       final status = await service.getSmartPlugStatus('mock-device-1');
       

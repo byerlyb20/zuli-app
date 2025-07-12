@@ -13,10 +13,6 @@ class SmartPlugDetailViewModel extends ChangeNotifier {
   String get deviceName => _smartPlug?.friendlyName ?? 'Unknown Device';
   double get powerUsage => _smartPlug?.currentPowerUsage ?? 0.0;
   bool get isOnline => _smartPlug?.isOnline ?? false;
-  String get manufacturer => _smartPlug?.manufacturer ?? 'Unknown';
-  String get modelNumber => _smartPlug?.modelNumber ?? 'Unknown';
-  String get serialNumber => _smartPlug?.serialNumber ?? 'Unknown';
-  String get firmwareVersion => _smartPlug?.firmwareVersion ?? 'Unknown';
   DateTime? get lastSeen => _smartPlug?.lastSeen;
   double get brightness => _smartPlug?.brightness ?? 0.0;
   

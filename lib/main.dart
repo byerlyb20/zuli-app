@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:zuli_flutter_app/data/services/transport/flutter_blue_plus_transport.dart';
 import 'domain/repositories/smart_plug_repository_impl.dart';
@@ -7,6 +8,10 @@ import 'data/services/transport/ble_transport_interface.dart';
 import 'ui/smart_plugs/widgets/smart_plugs_screen.dart';
 
 void main() {
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
   runApp(const MainApp());
 }
 

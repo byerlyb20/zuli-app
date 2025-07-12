@@ -45,6 +45,12 @@ class SmartPlugService {
            device.serviceData.containsKey(ZuliProtocol.zuliService);
   }
 
+  Future<void> _ensureConnected(String deviceId) async {
+    if (!await _transport.isConnected(deviceId)) {
+      await connectToSmartPlug(deviceId);
+    }
+  }
+
   /// Connect to a smart plug device
   Future<void> connectToSmartPlug(String deviceId) async {
     try {
@@ -154,6 +160,7 @@ class SmartPlugService {
   /// Handles error checking and response validation
   Future<Uint8List> _sendCommand(String deviceId, Uint8List packet) async {
     try {
+      await _ensureConnected(deviceId);
       final response = await _transport.sendPacket(deviceId, packet);
       
       // Check response status

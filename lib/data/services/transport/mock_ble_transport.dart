@@ -58,12 +58,6 @@ class MockBleTransport implements BleTransportInterface {
       for (final device in _mockDevices) {
         controller.add(device);
       }
-      
-      // Stop after timeout or after a few discoveries
-      if (timeout != null) {
-        timer.cancel();
-        controller.close();
-      }
     });
     
     // Auto-close after timeout

@@ -68,7 +68,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
             name: result.device.platformName.isNotEmpty 
                 ? result.device.platformName 
                 : result.device.remoteId.toString(),
-            localName: result.advertisementData.localName,
+            localName: result.advertisementData.advName,
             rssi: result.rssi,
             serviceData: _convertServiceData(result.advertisementData.serviceData),
           );

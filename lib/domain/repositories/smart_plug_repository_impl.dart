@@ -4,7 +4,7 @@ import 'package:logging/logging.dart';
 
 import '../models/smart_plug.dart';
 import 'smart_plug_repository.dart';
-import '../../data/services/application/smart_plug_service.dart';
+import '../../data/services/smart_plug_service.dart';
 import '../../data/services/transport/ble_transport_interface.dart';
 
 class SmartPlugRepositoryImpl implements SmartPlugRepository {
@@ -21,15 +21,15 @@ class SmartPlugRepositoryImpl implements SmartPlugRepository {
       // Initialize the service if needed
       await _service.initialize();
 
-      _service.scanForSmartPlugs().listen((device) async {
+      await for (final device in _service.scanForSmartPlugs(
+        timeout: const Duration(seconds: 10),
+      )) {
         _logger.fine('Found device: ${device.id}');
         // Try to get status for each device
         final status = await _getDeviceStatus(device.id);
         _logger.fine('${device.id} status: $status');
         _cachedPlugs[device.id] = status;
-      });
-
-      await Future.delayed(const Duration(seconds: 10));
+      }
       
       return _cachedPlugs.values.toList();
     } catch (e) {

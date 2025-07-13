@@ -4,8 +4,9 @@ import 'dart:typed_data';
 /// Provides packet generation and response parsing for Zuli smart plug protocol
 class ZuliProtocol {
   // BLE Service and Characteristic UUIDs
-  static const String zuliService = '04ee929b-bb13-4e77-8160-18552daf06e1';
-  static const String commandPipe = 'ffffff03-bb13-4e77-8160-18552daf06e1';
+  static const String advertisedZuliService = '04ee929b-bb13-4e77-8160-18552daf06e1';
+  static const String zuliService = 'ffffff00-bb13-4e77-8160-18552daf06e1';
+  static const String commandPipeCharacteristic = 'ffffff03-bb13-4e77-8160-18552daf06e1';
 
   // Command codes
   static const int cmdReset = 2;

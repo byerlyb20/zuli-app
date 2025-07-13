@@ -58,6 +58,12 @@ class MockBleTransport implements BleTransportInterface {
       for (final device in _mockDevices) {
         controller.add(device);
       }
+      
+      // Stop after timeout or after a few discoveries
+      if (timeout != null) {
+        timer.cancel();
+        controller.close();
+      }
     });
     
     // Auto-close after timeout
@@ -101,7 +107,7 @@ class MockBleTransport implements BleTransportInterface {
   }
 
   @override
-  Future<Uint8List> sendPacket(String deviceId, Uint8List packet) async {
+  Future<Uint8List> sendPacket(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 200));
     

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zuli_flutter_app/data/services/transport/mock_ble_transport.dart';
-import 'package:zuli_flutter_app/data/services/application/smart_plug_service.dart';
+import 'package:zuli_flutter_app/data/services/smart_plug_service.dart';
 import 'package:zuli_flutter_app/data/services/application/zuli_protocol.dart';
 
 void main() {

@@ -26,6 +26,7 @@ class SmartPlugDetailViewModel extends ChangeNotifier {
   void togglePower(bool value) {
     if (_smartPlug == null) return;
     
+    // TODO: Implement the actual power toggle logic
     _smartPlug = _smartPlug!.copyWith(
       isPoweredOn: value,
       currentPowerUsage: value ? _smartPlug!.currentPowerUsage : 0.0,
@@ -37,6 +38,7 @@ class SmartPlugDetailViewModel extends ChangeNotifier {
   void updateDeviceName(String name) {
     if (_smartPlug == null) return;
     
+    // TODO: Implement the actual device name update logic
     _smartPlug = _smartPlug!.copyWith(friendlyName: name);
     notifyListeners();
   }
@@ -48,6 +50,7 @@ class SmartPlugDetailViewModel extends ChangeNotifier {
     // Ensure brightness is between 0 and 100
     value = value.clamp(0.0, 100.0);
     
+    // TODO: Implement the actual brightness update logic
     _smartPlug = _smartPlug!.copyWith(
       brightness: value,
     );

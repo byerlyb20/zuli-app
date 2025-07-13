@@ -42,7 +42,7 @@ abstract class BleTransportInterface {
   /// Start scanning for BLE devices
   /// Returns a stream of discovered devices
   Stream<BleDevice> startScan({
-    Duration? timeout,
+    required Duration timeout,
     List<String>? serviceUuids,
   });
 
@@ -60,7 +60,7 @@ abstract class BleTransportInterface {
 
   /// Send a packet to a connected device and wait for response
   /// Returns the response packet
-  Future<Uint8List> sendPacket(String deviceId, Uint8List packet);
+  Future<void> sendPacket(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet);
 
   /// Subscribe to notifications from a device
   /// Returns a stream of received packets
@@ -74,9 +74,6 @@ abstract class BleTransportInterface {
 
   /// Get the RSSI (signal strength) of a connected device
   Future<int> getRssi(String deviceId);
-
-  /// Discover services and characteristics for a connected device
-  Future<void> discoverServices(String deviceId);
 
   /// Dispose of resources
   Future<void> dispose();

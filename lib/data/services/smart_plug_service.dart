@@ -1,6 +1,6 @@
 import 'dart:typed_data';
-import '../transport/ble_transport_interface.dart';
-import 'zuli_protocol.dart';
+import 'transport/ble_transport_interface.dart';
+import 'application/zuli_protocol.dart';
 
 /// High-level service for smart plug operations
 /// Orchestrates the Zuli protocol and BLE transport layers
@@ -33,7 +33,7 @@ class SmartPlugService {
   Stream<BleDevice> scanForSmartPlugs({Duration? timeout}) {
     return _transport.startScan(
       timeout: timeout ?? const Duration(seconds: 10),
-      serviceUuids: [ZuliProtocol.zuliService],
+      serviceUuids: [ZuliProtocol.advertisedZuliService],
     ).where((device) => _isZuliSmartPlug(device));
   }
 
@@ -42,7 +42,7 @@ class SmartPlugService {
     // Check if device name contains "Zuli" or has the Zuli service
     return device.name.contains('Zuli') || 
            device.localName?.contains('Zuli') == true ||
-           device.serviceData.containsKey(ZuliProtocol.zuliService);
+           device.serviceData.containsKey(ZuliProtocol.advertisedZuliService);
   }
 
   Future<void> _ensureConnected(String deviceId) async {
@@ -55,7 +55,6 @@ class SmartPlugService {
   Future<void> connectToSmartPlug(String deviceId) async {
     try {
       await _transport.connect(deviceId);
-      await _transport.discoverServices(deviceId);
     } catch (e) {
       throw BleException(
         message: 'Failed to connect to smart plug: $e',
@@ -161,19 +160,24 @@ class SmartPlugService {
   Future<Uint8List> _sendCommand(String deviceId, Uint8List packet) async {
     try {
       await _ensureConnected(deviceId);
-      final response = await _transport.sendPacket(deviceId, packet);
+      await _transport.sendPacket(
+        deviceId,
+        ZuliProtocol.zuliService,
+        ZuliProtocol.commandPipeCharacteristic,
+        packet,
+      );
       
       // Check response status
-      final status = ZuliProtocol.parseResponseStatus(response);
-      if (status != ZuliProtocol.statusSuccess) {
-        throw BleException(
-          message: 'Command failed with status: $status',
-          deviceId: deviceId,
-          errorType: BleErrorType.invalidResponse,
-        );
-      }
+      // final status = ZuliProtocol.parseResponseStatus(response);
+      // if (status != ZuliProtocol.statusSuccess) {
+      //   throw BleException(
+      //     message: 'Command failed with status: $status',
+      //     deviceId: deviceId,
+      //     errorType: BleErrorType.invalidResponse,
+      //   );
+      // }
       
-      return response;
+      return Uint8List.fromList([]);
     } catch (e) {
       if (e is BleException) {
         rethrow;

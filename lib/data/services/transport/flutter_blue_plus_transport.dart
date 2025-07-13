@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:collection/collection.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'ble_transport_interface.dart';
 
 /// Real BLE transport implementation using flutter_blue_plus
 class FlutterBluePlusTransport implements BleTransportInterface {
-  final Map<String, BluetoothDevice> _connectedDevices = {};
-  final Map<String, StreamSubscription<BluetoothConnectionState>> _connectionSubscriptions = {};
-  final Map<String, StreamSubscription<List<int>>> _notificationSubscriptions = {};
   final Map<String, Completer<Uint8List>> _pendingResponses = {};
 
   @override
@@ -19,7 +17,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
       }
 
       // Check if Bluetooth is on
-      return await FlutterBluePlus.adapterState.first == BluetoothAdapterState.on;
+      return FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on;
     } catch (e) {
       return false;
     }
@@ -28,6 +26,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   @override
   Future<bool> requestPermissions() async {
     try {
+      // TODO: Does turnOn() actually request permissions on Android? Needs implementation on iOS regardless
       // Request location permission (required for BLE scanning on Android)
       await FlutterBluePlus.turnOn();
       return true;
@@ -38,7 +37,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
 
   @override
   Stream<BleDevice> startScan({
-    Duration? timeout,
+    required Duration timeout,
     List<String>? serviceUuids,
   }) async* {
     try {
@@ -51,17 +50,20 @@ class FlutterBluePlusTransport implements BleTransportInterface {
       // Start scanning
       if (guids != null) {
         await FlutterBluePlus.startScan(
-          timeout: timeout ?? const Duration(seconds: 10),
+          timeout: timeout,
           withServices: guids,
         );
       } else {
         await FlutterBluePlus.startScan(
-          timeout: timeout ?? const Duration(seconds: 10),
+          timeout: timeout,
         );
       }
 
       // Listen for scan results
-      await for (final scanResult in FlutterBluePlus.scanResults) {
+      final scanStreamWithTimeout = FlutterBluePlus.scanResults.timeout(timeout, onTimeout: (sink) {
+        sink.close();
+      });
+      await for (final scanResult in scanStreamWithTimeout) {
         for (final result in scanResult) {
           final device = BleDevice(
             id: result.device.remoteId.toString(),
@@ -99,7 +101,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   Future<void> connect(String deviceId) async {
     try {
       // Find the device
-      final device = await _findDevice(deviceId);
+      final device = _findDevice(deviceId);
       if (device == null) {
         throw BleException(
           message: 'Device not found',
@@ -110,12 +112,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
 
       // Connect to the device
       await device.connect(timeout: const Duration(seconds: 10));
-      _connectedDevices[deviceId] = device;
-
-      // Listen for connection state changes
-      _connectionSubscriptions[deviceId] = device.connectionState.listen((state) {
-        // Handle connection state changes if needed
-      });
+      await device.discoverServices();
 
     } catch (e) {
       throw BleException(
@@ -129,14 +126,9 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   @override
   Future<void> disconnect(String deviceId) async {
     try {
-      final device = _connectedDevices[deviceId];
+      final device = _findDevice(deviceId);
       if (device != null) {
         await device.disconnect();
-        _connectedDevices.remove(deviceId);
-        _connectionSubscriptions[deviceId]?.cancel();
-        _connectionSubscriptions.remove(deviceId);
-        _notificationSubscriptions[deviceId]?.cancel();
-        _notificationSubscriptions.remove(deviceId);
       }
     } catch (e) {
       throw BleException(
@@ -149,7 +141,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
 
   @override
   Stream<BleConnectionState> getConnectionState(String deviceId) {
-    final device = _connectedDevices[deviceId];
+    final device = _findDevice(deviceId);
     if (device == null) {
       return Stream.value(BleConnectionState.disconnected);
     }
@@ -169,9 +161,9 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   }
 
   @override
-  Future<Uint8List> sendPacket(String deviceId, Uint8List packet) async {
+  Future<void> sendPacket(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet) async {
     try {
-      final device = _connectedDevices[deviceId];
+      final device = _findDevice(deviceId);
       if (device == null) {
         throw BleException(
           message: 'Device not connected',
@@ -180,61 +172,25 @@ class FlutterBluePlusTransport implements BleTransportInterface {
         );
       }
 
-      // Discover services if not already done
-      await discoverServices(deviceId);
-
-      // Find the appropriate service and characteristic
-      // This is a generic implementation - you'll need to customize based on your device
+      // There appears to be a bug in the characteristic caching so we must discover services every time :(
       final services = await device.discoverServices();
-      if (services.isEmpty) {
+      final service = services.firstWhereOrNull(
+        (service) => service.uuid.toString() == serviceUuid
+      );
+      final characteristic = service?.characteristics.firstWhereOrNull(
+        (characteristic) => characteristic.uuid.toString() == characteristicUuid
+      );
+      
+      if (characteristic == null) {
         throw BleException(
-          message: 'No services found',
+          message: 'Characteristic not found',
           deviceId: deviceId,
-          errorType: BleErrorType.serviceNotFound,
+          errorType: BleErrorType.characteristicNotFound,
         );
       }
 
-      // Use the first service and characteristic for now
-      // In a real implementation, you'd specify the exact service and characteristic UUIDs
-      final service = services.first;
-      final characteristic = service.characteristics.first;
-
       // Write the packet
       await characteristic.write(packet);
-
-      // Wait for response if the characteristic supports notifications
-      if (characteristic.properties.notify || characteristic.properties.indicate) {
-        final completer = Completer<Uint8List>();
-        _pendingResponses[deviceId] = completer;
-
-        // Set up notification listener
-        await characteristic.setNotifyValue(true);
-        final subscription = characteristic.onValueReceived.listen((value) {
-          final completer = _pendingResponses.remove(deviceId);
-          if (completer != null && !completer.isCompleted) {
-            completer.complete(Uint8List.fromList(value));
-          }
-        });
-
-        // Wait for response with timeout
-        try {
-          final response = await completer.future.timeout(
-            const Duration(seconds: 5),
-            onTimeout: () {
-              _pendingResponses.remove(deviceId);
-              throw TimeoutException('Response timeout', const Duration(seconds: 5));
-            },
-          );
-          subscription.cancel();
-          return response;
-        } catch (e) {
-          subscription.cancel();
-          rethrow;
-        }
-      } else {
-        // For write-only characteristics, return empty response
-        return Uint8List(0);
-      }
 
     } catch (e) {
       if (e is TimeoutException) {
@@ -254,7 +210,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
 
   @override
   Stream<Uint8List> subscribeToNotifications(String deviceId) {
-    final device = _connectedDevices[deviceId];
+    final device = _findDevice(deviceId);
     if (device == null) {
       throw BleException(
         message: 'Device not connected',
@@ -263,31 +219,19 @@ class FlutterBluePlusTransport implements BleTransportInterface {
       );
     }
 
-    return Stream.fromFuture(discoverServices(deviceId)).asyncExpand((_) async* {
-      final services = await device.discoverServices();
-      for (final service in services) {
-        for (final characteristic in service.characteristics) {
-          if (characteristic.properties.notify || characteristic.properties.indicate) {
-            await characteristic.setNotifyValue(true);
-            yield* characteristic.onValueReceived.map((value) => Uint8List.fromList(value));
-          }
-        }
-      }
-    });
+    // TODO: previous implementation looked messed; check this
+    throw UnimplementedError();
   }
 
   @override
   Future<void> unsubscribeFromNotifications(String deviceId) async {
-    final subscription = _notificationSubscriptions[deviceId];
-    if (subscription != null) {
-      await subscription.cancel();
-      _notificationSubscriptions.remove(deviceId);
-    }
+    // TODO: previous implementation looked messed; check this
+    throw UnimplementedError();
   }
 
   @override
   Future<bool> isConnected(String deviceId) async {
-    final device = _connectedDevices[deviceId];
+    final device = _findDevice(deviceId);
     if (device == null) {
       return false;
     }
@@ -303,7 +247,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   @override
   Future<int> getRssi(String deviceId) async {
     try {
-      final device = _connectedDevices[deviceId];
+      final device = _findDevice(deviceId);
       if (device == null) {
         throw BleException(
           message: 'Device not connected',
@@ -323,56 +267,18 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   }
 
   @override
-  Future<void> discoverServices(String deviceId) async {
-    try {
-      final device = _connectedDevices[deviceId];
-      if (device == null) {
-        throw BleException(
-          message: 'Device not connected',
-          deviceId: deviceId,
-          errorType: BleErrorType.deviceNotFound,
-        );
-      }
-
-      await device.discoverServices();
-    } catch (e) {
-      throw BleException(
-        message: 'Failed to discover services: $e',
-        deviceId: deviceId,
-        errorType: BleErrorType.serviceNotFound,
-      );
-    }
-  }
-
-  @override
   Future<void> dispose() async {
-    // Cancel all subscriptions
-    for (final subscription in _connectionSubscriptions.values) {
-      await subscription.cancel();
-    }
-    for (final subscription in _notificationSubscriptions.values) {
-      await subscription.cancel();
-    }
-
     // Disconnect all devices
-    for (final deviceId in _connectedDevices.keys.toList()) {
-      await disconnect(deviceId);
+    for (final device in FlutterBluePlus.connectedDevices) {
+      await device.disconnect();
     }
 
     // Clear maps
-    _connectedDevices.clear();
-    _connectionSubscriptions.clear();
-    _notificationSubscriptions.clear();
     _pendingResponses.clear();
   }
 
   /// Helper method to find a device by ID
-  Future<BluetoothDevice?> _findDevice(String deviceId) async {
-    // First check if we already have the device
-    if (_connectedDevices.containsKey(deviceId)) {
-      return _connectedDevices[deviceId];
-    }
-
+  BluetoothDevice? _findDevice(String deviceId) {
     // Try to find it in the system
     try {
       return BluetoothDevice.fromId(deviceId);

@@ -16,29 +16,23 @@ class SmartPlugRepositoryImpl implements SmartPlugRepository {
       : _service = SmartPlugService(transport);
 
   @override
-  Future<List<SmartPlug>> getSmartPlugs() async {
-    try {
-      // Initialize the service if needed
-      await _service.initialize();
-
-      await for (final device in _service.scanForSmartPlugs(
-        timeout: const Duration(seconds: 10),
-      )) {
-        _logger.fine('Found device: ${device.id}');
-        // Try to get status for each device
-        final status = await _getDeviceStatus(device.id);
-        _logger.fine('${device.id} status: $status');
-        _cachedPlugs[device.id] = status;
-      }
-      
-      return _cachedPlugs.values.toList();
-    } catch (e) {
-      return _cachedPlugs.values.toList();
-    }
+  Stream<SmartPlug> discoverSmartPlugs() {
+    return _service.scanForSmartPlugs(
+      timeout: const Duration(seconds: 10),
+    ).asyncMap((device) async {
+      final status = await _getDeviceStatus(device.id);
+      _cachedPlugs[device.id] = status;
+      return status;
+    });
   }
 
   @override
-  Future<void> togglePower(String plugId, bool newState) async {
+  List<SmartPlug> getKnownSmartPlugs() {
+    return _cachedPlugs.values.toList();
+  }
+
+  @override
+  Future<void> setPower(String plugId, bool newState) async {
     try {
       // Business logic: Validate the request
       if (!_cachedPlugs.containsKey(plugId)) {

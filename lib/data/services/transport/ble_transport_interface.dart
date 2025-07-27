@@ -58,16 +58,9 @@ abstract class BleTransportInterface {
   /// Get the current connection state for a device
   Stream<BleConnectionState> getConnectionState(String deviceId);
 
-  /// Send a packet to a connected device and wait for response
-  /// Returns the response packet
-  Future<void> sendPacket(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet);
+  Future<void> setCharacteristic(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet);
 
-  /// Subscribe to notifications from a device
-  /// Returns a stream of received packets
-  Stream<Uint8List> subscribeToNotifications(String deviceId);
-
-  /// Unsubscribe from notifications
-  Future<void> unsubscribeFromNotifications(String deviceId);
+  Future<Uint8List> readCharacteristic(String deviceId, String serviceUuid, String characteristicUuid);
 
   /// Check if a device is currently connected
   Future<bool> isConnected(String deviceId);

@@ -35,7 +35,7 @@ class SmartPlugsViewModel extends ChangeNotifier {
       final index = _smartPlugs.indexWhere((plug) => plug.id == plugId);
       if (index == -1) return;
 
-      await _repository.togglePower(plugId, newState);
+      await _repository.setPower(plugId, newState);
       
       // Update the local state after successful API call
       _smartPlugs[index] = _smartPlugs[index].copyWith(isPoweredOn: newState);

@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import '../../../domain/models/smart_plug.dart';
+import '../../../domain/repositories/smart_plug_repository.dart';
 
 class SmartPlugDetailViewModel extends ChangeNotifier {
   SmartPlug? _smartPlug;
+
+  final SmartPlugRepository _smartPlugRepository;
   
-  SmartPlugDetailViewModel({SmartPlug? smartPlug}) {
-    _smartPlug = smartPlug;
-  }
+  SmartPlugDetailViewModel(this._smartPlug, this._smartPlugRepository);
   
   // Getters
   bool get isOn => _smartPlug?.isPoweredOn ?? false;
@@ -23,14 +24,13 @@ class SmartPlugDetailViewModel extends ChangeNotifier {
   }
 
   // Toggle power state
-  void togglePower(bool value) {
-    if (_smartPlug == null) return;
-    
-    // TODO: Implement the actual power toggle logic
-    _smartPlug = _smartPlug!.copyWith(
-      isPoweredOn: value,
-      currentPowerUsage: value ? _smartPlug!.currentPowerUsage : 0.0,
-    );
+  Future<void> togglePower(bool value) async {
+    final smartPlug = _smartPlug;
+    if (smartPlug == null) return;
+
+    final newPowerState = !smartPlug.isPoweredOn;
+    await _smartPlugRepository.setPower(smartPlug.id, newPowerState);
+    _smartPlug = smartPlug.copyWith(isPoweredOn: newPowerState);
     notifyListeners();
   }
 

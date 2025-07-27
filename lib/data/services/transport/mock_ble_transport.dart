@@ -8,6 +8,8 @@ class MockBleTransport implements BleTransportInterface {
   final Map<String, BleConnectionState> _connectionStates = {};
   final Map<String, StreamController<BleConnectionState>> _connectionControllers = {};
   final Map<String, StreamController<Uint8List>> _notificationControllers = {};
+
+  Uint8List? _lastPacketSent;
   
   // Mock device data
   final List<BleDevice> _mockDevices = [
@@ -107,7 +109,7 @@ class MockBleTransport implements BleTransportInterface {
   }
 
   @override
-  Future<Uint8List> sendPacket(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet) async {
+  Future<void> setCharacteristic(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet) async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 200));
     
@@ -120,21 +122,19 @@ class MockBleTransport implements BleTransportInterface {
       );
     }
     
-    // Simulate response based on command
-    return _generateMockResponse(packet);
+    _lastPacketSent = packet;
   }
 
   @override
-  Stream<Uint8List> subscribeToNotifications(String deviceId) {
-    final controller = _getNotificationController(deviceId);
-    return controller.stream;
-  }
-
-  @override
-  Future<void> unsubscribeFromNotifications(String deviceId) async {
-    final controller = _notificationControllers[deviceId];
-    if (controller != null && !controller.isClosed) {
-      controller.close();
+  Future<Uint8List> readCharacteristic(String deviceId, String serviceUuid, String characteristicUuid) async {
+    // Simulate network delay
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    final packet = _lastPacketSent;
+    if (packet == null) {
+      return Uint8List(0);
+    } else {
+      return _generateMockResponse(packet);
     }
   }
 
@@ -147,12 +147,6 @@ class MockBleTransport implements BleTransportInterface {
   Future<int> getRssi(String deviceId) async {
     // Return mock RSSI value
     return -50;
-  }
-
-  @override
-  Future<void> discoverServices(String deviceId) async {
-    // Simulate service discovery delay
-    await Future.delayed(const Duration(milliseconds: 300));
   }
 
   @override

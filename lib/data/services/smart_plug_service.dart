@@ -160,24 +160,29 @@ class SmartPlugService {
   Future<Uint8List> _sendCommand(String deviceId, Uint8List packet) async {
     try {
       await _ensureConnected(deviceId);
-      await _transport.sendPacket(
+      await _transport.setCharacteristic(
         deviceId,
         ZuliProtocol.zuliService,
         ZuliProtocol.commandPipeCharacteristic,
         packet,
       );
+      final response = await _transport.readCharacteristic(
+        deviceId,
+        ZuliProtocol.zuliService,
+        ZuliProtocol.commandPipeCharacteristic,
+      );
       
       // Check response status
-      // final status = ZuliProtocol.parseResponseStatus(response);
-      // if (status != ZuliProtocol.statusSuccess) {
-      //   throw BleException(
-      //     message: 'Command failed with status: $status',
-      //     deviceId: deviceId,
-      //     errorType: BleErrorType.invalidResponse,
-      //   );
-      // }
+      final status = ZuliProtocol.parseResponseStatus(response);
+      if (status != ZuliProtocol.statusSuccess) {
+        throw BleException(
+          message: 'Command failed with status: $status',
+          deviceId: deviceId,
+          errorType: BleErrorType.invalidResponse,
+        );
+      }
       
-      return Uint8List.fromList([]);
+      return response;
     } catch (e) {
       if (e is BleException) {
         rethrow;

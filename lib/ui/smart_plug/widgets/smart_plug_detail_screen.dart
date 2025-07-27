@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../domain/repositories/smart_plug_repository.dart';
 import '../view_model/smart_plug_detail_view_model.dart';
 import '../../core/ui/smart_dimmer_switch.dart';
 import '../../../domain/models/smart_plug.dart';
@@ -15,7 +16,10 @@ class SmartPlugDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => SmartPlugDetailViewModel(smartPlug: smartPlug),
+      create: (context) {
+        final repository = context.read<SmartPlugRepository>();
+        return SmartPlugDetailViewModel(smartPlug, repository);
+      },
       child: const SmartPlugDetailView(),
     );
   }

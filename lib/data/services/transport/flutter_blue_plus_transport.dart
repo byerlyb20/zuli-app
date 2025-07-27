@@ -161,7 +161,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   }
 
   @override
-  Future<void> sendPacket(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet) async {
+  Future<void> setCharacteristic(String deviceId, String serviceUuid, String characteristicUuid, Uint8List packet) async {
     try {
       final device = _findDevice(deviceId);
       if (device == null) {
@@ -172,22 +172,7 @@ class FlutterBluePlusTransport implements BleTransportInterface {
         );
       }
 
-      // There appears to be a bug in the characteristic caching so we must discover services every time :(
-      final services = await device.discoverServices();
-      final service = services.firstWhereOrNull(
-        (service) => service.uuid.toString() == serviceUuid
-      );
-      final characteristic = service?.characteristics.firstWhereOrNull(
-        (characteristic) => characteristic.uuid.toString() == characteristicUuid
-      );
-      
-      if (characteristic == null) {
-        throw BleException(
-          message: 'Characteristic not found',
-          deviceId: deviceId,
-          errorType: BleErrorType.characteristicNotFound,
-        );
-      }
+      final characteristic = await _findCharacteristic(device, serviceUuid, characteristicUuid);
 
       // Write the packet
       await characteristic.write(packet);
@@ -209,24 +194,34 @@ class FlutterBluePlusTransport implements BleTransportInterface {
   }
 
   @override
-  Stream<Uint8List> subscribeToNotifications(String deviceId) {
-    final device = _findDevice(deviceId);
-    if (device == null) {
+  Future<Uint8List> readCharacteristic(String deviceId, String serviceUuid, String characteristicUuid) async {
+    try {
+      final device = _findDevice(deviceId);
+      if (device == null) {
+        throw BleException(
+          message: 'Device not connected',
+          deviceId: deviceId,
+          errorType: BleErrorType.deviceNotFound,
+        );
+      }
+
+      final characteristic = await _findCharacteristic(device, serviceUuid, characteristicUuid);
+      return Uint8List.fromList(await characteristic.read());
+
+    } catch (e) {
+      if (e is TimeoutException) {
+        throw BleException(
+          message: 'Response timeout',
+          deviceId: deviceId,
+          errorType: BleErrorType.timeout,
+        );
+      }
       throw BleException(
-        message: 'Device not connected',
+        message: 'Failed to send packet: $e',
         deviceId: deviceId,
-        errorType: BleErrorType.deviceNotFound,
+        errorType: BleErrorType.writeFailed,
       );
     }
-
-    // TODO: previous implementation looked messed; check this
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> unsubscribeFromNotifications(String deviceId) async {
-    // TODO: previous implementation looked messed; check this
-    throw UnimplementedError();
   }
 
   @override
@@ -285,6 +280,25 @@ class FlutterBluePlusTransport implements BleTransportInterface {
     } catch (e) {
       return null;
     }
+  }
+
+  Future<BluetoothCharacteristic> _findCharacteristic(BluetoothDevice device, String serviceUuid, String characteristicUuid) async {
+    // There appears to be a bug in the characteristic caching so we must discover services every time :(
+    final services = await device.discoverServices();
+    final service = services.firstWhereOrNull(
+      (service) => service.uuid.toString() == serviceUuid
+    );
+    final characteristic = service?.characteristics.firstWhereOrNull(
+      (characteristic) => characteristic.uuid.toString() == characteristicUuid
+    );
+    if (characteristic == null) {
+      throw BleException(
+        message: 'Characteristic not found',
+        deviceId: device.remoteId.toString(),
+        errorType: BleErrorType.characteristicNotFound,
+      );
+    }
+    return characteristic;
   }
 
   /// Helper method to convert service data format

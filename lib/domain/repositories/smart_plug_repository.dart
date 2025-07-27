@@ -5,7 +5,7 @@ abstract class SmartPlugRepository {
   Future<List<SmartPlug>> getSmartPlugs();
   
   /// Toggles the power state of a specific smart plug
-  Future<void> togglePower(String plugId, bool newState);
+  Future<void> setPower(String plugId, bool newState);
   
   /// Gets a specific smart plug by ID
   Future<SmartPlug?> getSmartPlugById(String plugId);

@@ -13,7 +13,7 @@ class SmartPlugsScreen extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) {
         final repository = context.read<SmartPlugRepository>();
-        return SmartPlugsViewModel(repository)..loadSmartPlugs();
+        return SmartPlugsViewModel(repository)..discoverSmartPlugs();
       },
       child: const SmartPlugsView(),
     );
@@ -32,18 +32,13 @@ class SmartPlugsView extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<SmartPlugsViewModel>().loadSmartPlugs();
+              context.read<SmartPlugsViewModel>().discoverSmartPlugs();
             },
           ),
         ],
       ),
       body: Consumer<SmartPlugsViewModel>(
         builder: (context, viewModel, child) {
-          if (viewModel.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
 
           if (viewModel.error != null) {
             return Center(
@@ -59,7 +54,7 @@ class SmartPlugsView extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => viewModel.loadSmartPlugs(),
+                    onPressed: () => viewModel.discoverSmartPlugs(),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -68,13 +63,19 @@ class SmartPlugsView extends StatelessWidget {
           }
 
           if (viewModel.smartPlugs.isEmpty) {
-            return const Center(
-              child: Text('No smart plugs found'),
-            );
+            if (viewModel.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            } else {
+              return const Center(
+                child: Text('No smart plugs found'),
+              );
+            }
           }
 
           return RefreshIndicator(
-            onRefresh: () => viewModel.loadSmartPlugs(),
+            onRefresh: () => viewModel.discoverSmartPlugs(),
             child: ListView.builder(
               itemCount: viewModel.smartPlugs.length,
               itemBuilder: (context, index) {
@@ -102,4 +103,4 @@ class SmartPlugsView extends StatelessWidget {
       ),
     );
   }
-} 
+}

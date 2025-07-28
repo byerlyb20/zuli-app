@@ -1,34 +1,32 @@
 import 'dart:async';
-
-import 'package:logging/logging.dart';
+import 'dart:collection';
 
 import '../models/smart_plug.dart';
 import 'smart_plug_repository.dart';
 import '../../data/services/smart_plug_service.dart';
 import '../../data/services/transport/ble_transport_interface.dart';
 
-class SmartPlugRepositoryImpl implements SmartPlugRepository {
+class SmartPlugRepositoryImpl extends SmartPlugRepository {
   final SmartPlugService _service;
   final Map<String, SmartPlug> _cachedPlugs = {};
-  final Logger _logger = Logger('SmartPlugRepository');
 
   SmartPlugRepositoryImpl(BleTransportInterface transport)
       : _service = SmartPlugService(transport);
 
   @override
-  Stream<SmartPlug> discoverSmartPlugs() {
-    return _service.scanForSmartPlugs(
-      timeout: const Duration(seconds: 10),
-    ).asyncMap((device) async {
-      final status = await _getDeviceStatus(device.id);
-      _cachedPlugs[device.id] = status;
-      return status;
-    });
+  UnmodifiableListView<SmartPlug> get smartPlugs {
+    return UnmodifiableListView(_cachedPlugs.values.toList());
   }
 
   @override
-  List<SmartPlug> getKnownSmartPlugs() {
-    return _cachedPlugs.values.toList();
+  Future<void> discoverSmartPlugs() async {
+    final discoveryStream = _service.scanForSmartPlugs(
+      timeout: const Duration(seconds: 10),
+    );
+    await for (final device in discoveryStream) {
+      final status = await _getDeviceStatus(device.id);
+      _updateSmartPlug(status);
+    }
   }
 
   @override
@@ -52,14 +50,15 @@ class SmartPlugRepositoryImpl implements SmartPlugRepository {
         currentPowerUsage: newState ? _cachedPlugs[plugId]!.currentPowerUsage : 0.0,
         lastSeen: DateTime.now(),
       );
-      _cachedPlugs[plugId] = updatedPlug;
+      _updateSmartPlug(updatedPlug);
     } catch (e) {
       // Business logic: Update device as offline if operation fails
       if (_cachedPlugs.containsKey(plugId)) {
-        _cachedPlugs[plugId] = _cachedPlugs[plugId]!.copyWith(
+        final offlinePlug = _cachedPlugs[plugId]!.copyWith(
           isOnline: false,
           lastSeen: DateTime.now(),
         );
+        _updateSmartPlug(offlinePlug);
       }
       rethrow;
     }
@@ -80,13 +79,19 @@ class SmartPlugRepositoryImpl implements SmartPlugRepository {
       
       // Try to get fresh status
       final status = await _getDeviceStatus(plugId);
-      _cachedPlugs[plugId] = status;
+      _updateSmartPlug(status);
       
       return status;
     } catch (e) {
       // Return cached data if available, even if stale
       return _cachedPlugs[plugId];
     }
+  }
+
+  /// Updates a smart plug in the cache and notifies listeners
+  void _updateSmartPlug(SmartPlug plug) {
+    _cachedPlugs[plug.id] = plug;
+    notifyListeners();
   }
 
   /// Get device status by connecting and reading data

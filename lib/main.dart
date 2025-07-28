@@ -27,7 +27,7 @@ class MainApp extends StatelessWidget {
           create: (_) => FlutterBluePlusTransport(),
         ),
         // Provide the repository with transport dependency
-        Provider<SmartPlugRepository>(
+        ChangeNotifierProvider<SmartPlugRepository>(
           create: (context) {
             final transport = context.read<BleTransportInterface>();
             return SmartPlugRepositoryImpl(transport);

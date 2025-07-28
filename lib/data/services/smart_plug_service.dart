@@ -30,9 +30,9 @@ class SmartPlugService {
 
   /// Scan for Zuli smart plugs
   /// Returns a stream of discovered smart plug devices
-  Stream<BleDevice> scanForSmartPlugs({Duration? timeout}) {
+  Stream<BleDevice> scanForSmartPlugs({required Duration timeout}) {
     return _transport.startScan(
-      timeout: timeout ?? const Duration(seconds: 10),
+      timeout: timeout,
       serviceUuids: [ZuliProtocol.advertisedZuliService],
     ).where((device) => _isZuliSmartPlug(device));
   }

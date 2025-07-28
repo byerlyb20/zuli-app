@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:collection/collection.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:logging/logging.dart';
 import 'ble_transport_interface.dart';
 
 /// Real BLE transport implementation using flutter_blue_plus
@@ -47,7 +48,12 @@ class FlutterBluePlusTransport implements BleTransportInterface {
         guids = serviceUuids.map((uuid) => Guid(uuid)).toList();
       }
 
+      // iOS takes a while to init BLE...? idk but see this GitHub issue:
+      // https://github.com/chipweinberger/flutter_blue_plus/issues/681
+      await FlutterBluePlus.adapterState.where((val) => val == BluetoothAdapterState.on).first;
+
       // Start scanning
+      Logger.root.info("Starting scan");
       if (guids != null) {
         await FlutterBluePlus.startScan(
           timeout: timeout,
@@ -58,11 +64,13 @@ class FlutterBluePlusTransport implements BleTransportInterface {
           timeout: timeout,
         );
       }
+      Logger.root.info("Scan started successfully");
 
       // Listen for scan results
       final scanStreamWithTimeout = FlutterBluePlus.scanResults.timeout(timeout, onTimeout: (sink) {
         sink.close();
       });
+      Logger.root.info("Collecting scan results");
       await for (final scanResult in scanStreamWithTimeout) {
         for (final result in scanResult) {
           final device = BleDevice(

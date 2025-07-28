@@ -1,29 +1,43 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 import '../../../domain/models/smart_plug.dart';
 import '../../../domain/repositories/smart_plug_repository.dart';
 
 class SmartPlugsViewModel extends ChangeNotifier {
-  List<SmartPlug> _smartPlugs = [];
   bool _isLoading = false;
   String? _error;
 
-  List<SmartPlug> get smartPlugs => List.unmodifiable(_smartPlugs);
+  UnmodifiableListView<SmartPlug> get smartPlugs => _repository.smartPlugs;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
   final SmartPlugRepository _repository;
 
-  SmartPlugsViewModel(this._repository);
+  SmartPlugsViewModel(this._repository) {
+    // Listen to changes in the repository
+    _repository.addListener(_onRepositoryChanged);
+  }
 
-  Future<void> loadSmartPlugs() async {
+  @override
+  void dispose() {
+    _repository.removeListener(_onRepositoryChanged);
+    super.dispose();
+  }
+
+  void _onRepositoryChanged() {
+    notifyListeners();
+  }
+
+  Future<void> discoverSmartPlugs() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _smartPlugs = await _repository.getSmartPlugs();
+      await _repository.discoverSmartPlugs();
     } catch (e) {
-      _error = 'Failed to load smart plugs: $e';
+      _error = 'Failed to discover smart plugs: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -32,14 +46,9 @@ class SmartPlugsViewModel extends ChangeNotifier {
 
   Future<void> togglePower(String plugId, bool newState) async {
     try {
-      final index = _smartPlugs.indexWhere((plug) => plug.id == plugId);
-      if (index == -1) return;
-
+      _error = null;
       await _repository.setPower(plugId, newState);
-      
-      // Update the local state after successful API call
-      _smartPlugs[index] = _smartPlugs[index].copyWith(isPoweredOn: newState);
-      notifyListeners();
+      // The repository will automatically update and notify listeners
     } catch (e) {
       _error = 'Failed to toggle power: $e';
       notifyListeners();
